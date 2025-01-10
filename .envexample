@@ -1,0 +1,6 @@
+RPC_URL=https://convincing-burned-putty.solana-mainnet.quiknode.pro/63b74a45247644c3392fa848c1f9e3d4c7d133b7
+RPC_WS_URL=wss://convincing-burned-putty.solana-mainnet.quiknode.pro/63b74a45247644c3392fa848c1f9e3d4c7d133b7
+PRIVATE_KEY="[11,22,33]"
+POOL_ADDRESS=G3Kh9G6d6oL3GDePSwabRN53wagp6B7jLGL2EZzRixZ3
+TOKEN_MINT_ADDRESS=CCmBbDh6imohws6epvjHLmMsXMH4vBmaF5tKZReZpump
+DISCORO_WEBHOOK_URL=
