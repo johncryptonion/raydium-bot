@@ -8,6 +8,8 @@ import {
   AmmV4Keys,
   ApiV3PoolInfoStandardItem,
 } from '@raydium-io/raydium-sdk-v2';
+import { ac } from '@raydium-io/raydium-sdk-v2/lib/api-166c4d45';
+import { format } from 'node:path/win32';
 
 @Injectable()
 export class AppService {
@@ -56,84 +58,72 @@ export class AppService {
     const [mintIn, mintOut] = baseIn
       ? [poolInfo.mintA, poolInfo.mintB]
       : [poolInfo.mintB, poolInfo.mintA];
+
+    const sellAddress = 'Ha3PwnQ9PRCo1RXTqQVgaz2YaPX4N6p5ZiS9NSBzrPbR'
+    const buyAddress = 'HHWDKr7z1GgaZZqjofzeJWSauUEA6kVLX9h5Ry6eyABK'
+    // sell
+    // let txid = '2ZzmEscZR1ga5TQaSxaaWaKZekopVYSLqkgqik552jFmfChAwfeb8kUvBkpMh5vtNSH62hB72BtRsfv1LagNV3TG' // buy
+    // txid = '2TaP17CFbht1PvNZbMfnKT6wxruatDGUvkD9xLrmcdbVEdg2iQfk7PJNv3ikguoJCbWuXXJFW7xtDBHLYfgpA6f6' // sell
+    // txid = '2ZzmEscZR1ga5TQaSxaaWaKZekopVYSLqkgqik552jFmfChAwfeb8kUvBkpMh5vtNSH62hB72BtRsfv1LagNV3TG' // buy
+    // const txs = await raydium.connection.getParsedTransaction(txid, {
+    //   commitment: 'confirmed',
+    //   maxSupportedTransactionVersion: 1,
+    // })
+    // txs.meta.innerInstructions.forEach((innerInstruction, index1) => {
+    //   innerInstruction.instructions.forEach((item, index2) => {
+    //     if(item['parsed'] && item['parsed']['type'] === 'transfer' && item['parsed']['info']['amount']) {
+    //       console.log('item.index 1/2: ', `${index1}/${index2}`);
+    //       if (item['parsed']['info']['destination'] === sellAddress) {
+    //         console.log('SELL.....')
+    //         console.log('from: ', innerInstruction.instructions[index2]['parsed']['info']);
+    //         console.log('to: ', innerInstruction.instructions[index2+1]['parsed']['info']);
+    //       } else if (item['parsed']['info']['destination'] === buyAddress) {
+    //         console.log('BUY.....')
+    //         console.log('from: ', innerInstruction.instructions[index2]['parsed']['info']);
+    //         console.log('to: ', innerInstruction.instructions[index2+1]['parsed']['info']);
+    //       }
+    //     }
+    //   })
+    // })
     raydium.connection.onLogs(
       poolAddress,
       async (data) => {
-        console.log('>>> onLogs....');
-        let swapData = data.logs.find((item) => item.includes('Swap'));
-        if (!swapData) return;
-        swapData = swapData
-          .substring(swapData.indexOf('{') - 1)
-          .replace(/(\w+):/g, '"$1":');
-        const swapDataJson = JSON.parse(swapData);
-        console.log('- swapData: ', swapDataJson);
-        let state = 'NONE';
-        if (swapDataJson.amount_in > swapDataJson.minimum_amount_out) {
-          console.log('>>> Sell');
-          state = 'SELL';
-        } else {
-          console.log('>>> Buy');
-          state = 'BUY';
-          amountIn =
-            Number(swapDataJson.amount_in) +
-            Number(swapDataJson.amount_in * 0.05);
-          const out = raydium.liquidity.computeAmountOut({
-            poolInfo: {
-              ...poolInfo,
-              baseReserve,
-              quoteReserve,
-              status,
-              version: 4,
-            },
-            amountIn: new BN(amountIn),
-            mintIn: mintIn.address,
-            mintOut: mintOut.address,
-            slippage: 0.01, // range: 1 ~ 0.0001, means 100% ~ 0.01%
-          });
-          console.log('- amountInOrigin: ', swapDataJson.amount_in);
-          console.log(
-            '- minAmountOutOrigin: ',
-            swapDataJson.minimum_amount_out,
-          );
-          console.log('- amountIn: ', amountIn);
-          console.log('- minAmountOut: ', Number(out.minAmountOut.toString()));
-          console.log('- mintIn.address: ', mintIn.address);
-          console.log('- mintOut.address: ', mintOut.address);
-          // const { execute } = await raydium.liquidity.swap({
-          //   poolInfo,
-          //   poolKeys,
-          //   amountIn: new BN(amountIn),
-          //   amountOut: 0, // out.amountOut means amount 'without' slippage
-          //   fixedSide: 'in',
-          //   inputMint: mintIn.address,
-          //   txVersion,
-          //   // optional: set up token account
-          //   // config: {
-          //   //   inputUseSolBalance: true, // default: true, if you want to use existed wsol token account to pay token in, pass false
-          //   //   outputUseSolBalance: true, // default: true, if you want to use existed wsol token account to receive token out, pass false
-          //   //   associatedOnly: true, // default: true, if you want to use ata only, pass true
-          //   // },
-
-          //   // optional: set up priority fee here
-          //   computeBudgetConfig: {
-          //     units: 1000000,
-          //     microLamports: 500000,
-          //   },
-          // });
-          // don't want to wait confirm, set sendAndConfirm to false or don't pass any params to execute
-          // try {
-          //   const { txId } = await execute({
-          //     sendAndConfirm: true,
-          //     skipPreflight: true,
-          //   });
-          //   console.log(
-          //     `swap successfully in amm pool: https://solscan.io/tx/${txId.toString()}`,
-          //   );
-          // } catch (error) {
-          //   console.error(error);
-          // }
-        }
-        // get signature
+        try {
+          console.log('>>> onLog.... ');
+        console.log('- signature: ', data.signature);
+        // Get trasaction from rpc
+        const txs = await raydium.connection.getParsedTransaction(data.signature, {
+          commitment: 'confirmed',
+          maxSupportedTransactionVersion: 1,
+        })
+        let action = ''
+        let wallet = ''
+        let from = ''
+        let to = ''
+        txs.meta.innerInstructions.forEach((innerInstruction, index1) => {
+          innerInstruction.instructions.forEach((item, index2) => {
+            if (item['parsed'] && item['parsed']['type'] === 'transfer' && item['parsed']['info']['amount']) {
+              console.log('item.index 1/2: ', `${index1}/${index2}`);
+              if (item['parsed']['info']['destination'] === sellAddress) {
+                console.log('SELL.....')
+                console.log('from: ', innerInstruction.instructions[index2]['parsed']['info']);
+                console.log('to: ', innerInstruction.instructions[index2 + 1]['parsed']['info']);
+                action = 'SELL'
+                wallet = innerInstruction.instructions[index2]['parsed']['info']['authority']
+                from = Number(innerInstruction.instructions[index2]['parsed']['info']['amount']) / 1000000 + ' Q420'
+                to = Number(innerInstruction.instructions[index2 + 1]['parsed']['info']['amount']) / 1000000000 + ' SOL'
+              } else if (item['parsed']['info']['destination'] === buyAddress) {
+                console.log('BUY.....')
+                console.log('from: ', innerInstruction.instructions[index2]['parsed']['info']);
+                console.log('to: ', innerInstruction.instructions[index2 + 1]['parsed']['info']);
+                action = 'BUY'
+                wallet = innerInstruction.instructions[index2]['parsed']['info']['authority']
+                from = Number(innerInstruction.instructions[index2]['parsed']['info']['amount']) / 1000000000 + ' SOL'
+                to = Number(innerInstruction.instructions[index2 + 1]['parsed']['info']['amount']) / 1000000 + ' Q420'
+              }
+            }
+          })
+        })
         const tx = await raydium.connection.getParsedTransaction(
           data.signature,
           {
@@ -141,19 +131,15 @@ export class AppService {
             maxSupportedTransactionVersion: 1,
           },
         );
-        const signer =
-          tx?.meta?.innerInstructions[0].instructions[0]['parsed']['info'][
-            'wallet'
-          ];
         // hook
-        const color = state === 'BUY' ? 5763719 : 15548997;
+        const color = action === 'BUY' ? 5763719 : 15548997;
         await this.httpService.axiosRef.post(
           process.env.DISCORO_WEBHOOK_URL,
           {
             content: null,
             embeds: [
               {
-                title: `Raydium Bot v0.0.1 Detection`,
+                title: `Raydium Bot v0.0.2 Detection`,
                 color,
                 fields: [
                   {
@@ -163,18 +149,25 @@ export class AppService {
                   {
                     name: 'Action',
                     value:
-                      `${state} : ` +
-                      (state === 'BUY'
-                        ? `${(swapDataJson.minimum_amount_out / 1000000).toFixed(2)} Q420 = ${(
-                            swapDataJson.amount_in / 1000000000
-                          ).toFixed(6)} SOL`
-                        : `${(swapDataJson.amount_in / 1000000).toFixed(2)} Q420 = ${(
-                            swapDataJson.minimum_amount_out / 1000000000
-                          ).toFixed(6)} SOL`),
+                      `${action}`,
                   },
                   {
-                    name: 'Signer',
-                    value: `${signer}`,
+                    name: 'Wallet',
+                    value: `[${wallet}](https://solscan.io/account/${wallet})`,
+                  },
+                  {
+                    name: 'From',
+                    value:
+                      `${from}`,
+                  }, {
+                    name: 'to',
+                    value:
+                      `${to}`,
+                  },
+                  {
+                    name: 'Tx',
+                    value:
+                      `[View on Solscan](https://solscan.io/tx/${data.signature})`,
                   },
                 ],
                 footer: {
@@ -182,7 +175,7 @@ export class AppService {
                 },
               },
             ],
-            username: 'Test Bot',
+            username: 'Q420-Bot',
             avatar_url:
               'https://img-v1.raydium.io/icon/CCmBbDh6imohws6epvjHLmMsXMH4vBmaF5tKZReZpump.png',
             attachments: [],
@@ -193,6 +186,9 @@ export class AppService {
             },
           },
         );
+        } catch (error) {
+          console.log('onLogError: ', error)
+        }
       },
       'confirmed',
     );
