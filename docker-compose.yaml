@@ -1,3 +1,4 @@
+
 services:
   raydium-bot:
     build:
@@ -7,9 +8,9 @@ services:
       - .env
     ports:
       - "8080:8080"
+    restart: always
     logging:
       driver: "json-file"
       options:
-        max-file: "100"
+        max-file: "10"
         max-size: "100m"
-        restart: always
